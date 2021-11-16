@@ -10,6 +10,7 @@ function App() {
   const [imgSrc, setImgSrc] = useState({ img: "", cardNo: "" });
   const [signature, setSignature] = useState({ sign: "" });
   const [data, setData] = useState("");
+  const [validated, setValidated] = useState(false);
 
   const capture = useCallback(() => {
     const imageSrc = webcamRef.current.getScreenshot();
@@ -28,29 +29,36 @@ function App() {
   };
 
   const savePhoto = async (e) => {
-    e.preventDefault();
-    fetch(
-      " http://localhost:8000/employee?" +
-        new URLSearchParams({
-          cardNo: data,
-        })
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        if (data[0]) {
-          imgSrc.cardNo = data[0].cardNo;
-          imgSrc.sign = signature.sign;
-          fetch("http://localhost:8000/IMG", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(imgSrc),
-          }).then(() => {
-            alert("data saved");
-          });
-        } else {
-          alert("CardNo Not Exist");
-        }
-      });
+    const form = e.currentTarget;
+    if (form.checkValidity() === false) {
+      e.preventDefault();
+      e.stopPropagation();
+    } else {
+      e.preventDefault();
+      fetch(
+        " http://localhost:8000/employee?" +
+          new URLSearchParams({
+            cardNo: data,
+          })
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          if (data[0]) {
+            imgSrc.cardNo = data[0].cardNo;
+            imgSrc.sign = signature.sign;
+            fetch("http://localhost:8000/IMG", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(imgSrc),
+            }).then(() => {
+              alert("data saved");
+            });
+          } else {
+            alert("CardNo Not Exist");
+          }
+        });
+    }
+    setValidated(true);
   };
 
   return (
@@ -131,7 +139,12 @@ function App() {
       </Row>
 
       <Row>
-        <Form onSubmit={savePhoto} method="POST">
+        <Form
+          noValidate
+          validated={validated}
+          onSubmit={savePhoto}
+          method="POST"
+        >
           <Form.Group className="mb-3">
             <Form.Label>Enter CardNo</Form.Label>
             <Form.Control
@@ -141,6 +154,7 @@ function App() {
               onChange={(e) => {
                 setData(e.target.value);
               }}
+              required
             />
           </Form.Group>
 
